@@ -7,20 +7,21 @@ Ce projet propose un guide pratique et détaillé pour découvrir Redis, une bas
   - [Approche NoSQL](#approche-nosql)  
   - [Avantages et Inconvénients](#avantages-et-inconvénients)  
 - [Les 4 Familles des Bases de Données NoSQL](#les-4-familles-des-bases-de-données-nosql)  
-- [Installation](#installation)  
+- [Introduction à Redis](#introduction-à-redis)  
   - [Prérequis](#prérequis)  
   - [Installation avec Docker](#installation-avec-docker)  
+- [Tester Redis](#tester-redis)  
 - [Premiers Pas avec Redis CLI](#premiers-pas-avec-redis-cli)  
-  - [Commandes Essentielles](#commandes-essentielles)  
-- [Structures de Données Redis](#structures-de-données-redis)  
-  - [Clés/Valeurs (Key/Value)](#clévaleurs-keyvalue)  
-  - [Listes (List)](#listes-list)  
-  - [Ensembles (Set)](#ensembles-set)  
+  - [Définir une Clé/Valeur](#définir-une-clévaleur)  
+  - [Incrémenter un Compteur](#incrémenter-un-compteur)  
+  - [Expiration d’une Clé](#expiration-dune-clé)  
+- [Travailler avec d’autres Structures de Données](#travailler-avec-dautres-structures-de-données)  
+  - [Les Listes](#les-listes)  
+  - [Les Ensembles](#les-ensembles)  
   - [Ensembles Ordonnés (Sorted Set)](#ensembles-ordonnés-sorted-set)  
-  - [Hashmaps (Hash)](#hashmaps-hash)  
-  - [Streams](#nouvelle-structure-streams)  
-- [Fonctionnalités Avancées](#fonctionnalités-avancées)  
-- [Remarques et Limitations](#remarques-et-limitations)  
+  - [Hashmaps (Hash)](#hashmaps-hash)
+  - [HyperLogLog](#hyperloglog)
+- [Persistance et Limites de Redis](#persistance-et-limites-de-redis)  
 ## Introduction  
 Les bases de données sont essentielles pour gérer les informations dans les applications modernes, comme les sites e-commerce ou les applications mobiles. Traditionnellement, les bases de données relationnelles (SQL) étaient les plus courantes, grâce à leur structure et leur fiabilité.  
 
@@ -104,20 +105,13 @@ Cela permet une grande flexibilité, mais peut compliquer la recherche de donné
 
 ![image](https://github.com/user-attachments/assets/5682b1d1-c323-479f-95e6-fad855069f85)
 
-## Introduction  Redis 
+## Introduction à Redis  
+Redis (Remote Dictionary Server) est une base de données NoSQL clé/valeur rapide et légère, conçue pour fonctionner principalement en mémoire.  
 
-Redis (Remote Dictionary Server) est une base de données NoSQL clé/valeur rapide et légère, conçue pour fonctionner principalement en mémoire. Grâce à ses performances élevées, il est utilisé dans divers scénarios tels que :  
-- Le stockage temporaire de sessions utilisateur.  
-- La gestion de caches rapides.  
-- Les systèmes de recommandation.  
-
-Ce guide vise à rendre Redis accessible, même sans expérience préalable avec les bases de données.  
 ### Prérequis  
-
 - Installer [Docker](https://www.docker.com/get-started) sur votre système.  
 
 ### Installation avec Docker  
-
 1. Téléchargez l'image officielle Redis :  
    ```bash
    docker pull redis
@@ -127,11 +121,218 @@ Ce guide vise à rendre Redis accessible, même sans expérience préalable avec
    docker run --name redis-container -d -p 6379:6379 redis
    ```
 3. Connectez-vous à la CLI Redis :
- ```bash
- docker exec -it redis-container redis-cli
+   ```bash
+   docker exec -it redis-container redis-cli
+   ```
+
+## Tester Redis  
+Vérifiez que Redis fonctionne correctement en utilisant la commande suivante :  
+```bash
+docker exec -it my-redis redis-cli
 ```
--name redis-container : Donne un nom au conteneur.
--d : Exécute le conteneur en arrière-plan.
--p 6379:6379 : Expose le port Redis par défaut (6379).
+
+## Premiers Pas avec Redis CLI
+
+### Définir une Clé/Valeur  
+Redis utilise des paires clé/valeur pour stocker des données simples.
+
+- **Créer une clé :**
+  ```bash
+  SET demo "Bonjour"
+  ```
+  Réponse : `OK`
+
+- **Créer une autre clé :**
+  ```bash
+  SET user:1234 "Ghada"
+  ```
+  Réponse : `OK`
+
+- **Lire une valeur :**
+  ```bash
+  GET user:1234
+  ```
+  Réponse : `"Ghada"`
+
+- **Mettre à jour une clé :**
+  ```bash
+  SET demo "Bonsoir"
+  ```
+  Réponse : `OK`
+
+- **Supprimer une clé :**
+  ```bash
+  DEL user:1234
+  ```
+  Résultat : `1` (clé supprimée), ou `0` (si la clé n’existe pas).
+
+### Incrémenter un Compteur  
+Redis permet d'incrémenter et de décrémenter des valeurs de manière atomique.
+
+- **Initialiser un compteur :**
+  ```bash
+  SET 1mars 0
+  ```
+
+- **Incrémenter le compteur :**
+  ```bash
+  INCR 1mars
+  ```
+  Réponse : `1`
+
+- **Décrémenter :**
+  ```bash
+  DECR 1mars
+  ```
+  Réponse : `0`
+
+### Expiration d’une Clé  
+Les clés peuvent avoir une durée de vie limitée, après laquelle elles sont automatiquement supprimées.
+
+- **Créer une clé :**
+  ```bash
+  SET maCle "maValeur"
+  ```
+
+- **Définir une durée de vie :**
+  ```bash
+  EXPIRE maCle 120
+  ```
+  Résultat : `1`
+
+- **Vérifier le temps restant :**
+  ```bash
+  TTL maCle
+  ```
+  Résultat : `112`
+
+## Travailler avec d’autres Structures de Données
+
+### Les Listes  
+Les listes sont des collections ordonnées d'éléments.
+
+- **Ajouter des éléments :**
+  ```bash
+  RPUSH mesCours "BDA"
+  RPUSH mesCours "Service Web"
+  ```
+
+- **Lire les éléments :**
+  ```bash
+  LRANGE mesCours 0 -1
+  ```
+  Résultat : `["BDA", "Service Web"]`
+
+- **Supprimer des éléments :**
+  ```bash
+  RPOP mesCours
+  ```
+  Par la gauche :
+  ```bash
+  LPOP mesCours
+  ```
+
+### Les Ensembles  
+Les ensembles stockent des éléments uniques et non ordonnés.
+
+- **Ajouter des éléments :**
+  ```bash
+  SADD utilisateurs "Augustin"
+  SADD utilisateurs "Ines"
+  SADD utilisateurs "Ghada"
+  ```
+
+- **Vérifier les membres :**
+  ```bash
+  SMEMBERS utilisateurs
+  ```
+  Résultat : `["Augustin", "Ines", "Ghada"]`
+
+- **Supprimer un élément :**
+  ```bash
+  SREM utilisateurs "Ghada"
+  ```
+  Résultat : `1`
+
+- **Union de deux ensembles :**
+  ```bash
+  SADD autreUtilisateurs "Antoine"
+  SADD autreUtilisateurs "Farah"
+  SUNION utilisateurs autreUtilisateurs
+  ```
+  Résultat : `["Augustin", "Ines", "Antoine", "Farah"]`
+
+### Ensembles Ordonnés (Sorted Set)  
+Utilisés pour classer des éléments par score, idéal pour les systèmes de recommandation.
+
+- **Ajouter des utilisateurs avec des scores :**
+  ```bash
+  ZADD score4 19 "Augustin"
+  ZADD score4 18 "Ines"
+  ZADD score4 10 "Samir"
+  ZADD score4 8 "Augustin"
+  ```
+
+- **Récupérer les éléments par score croissant :**
+  ```bash
+  ZRANGE score4 0 -1
+  ```
+
+- **Récupérer les éléments par score décroissant :**
+  ```bash
+  ZREVRANGE score4 0 -1
+  ```
+
+- **Connaître le rang d'un élément :**
+  ```bash
+  ZRANK score4 "Augustin"
+  ```
+
+### Hashmaps (Hash)  
+Permettent de stocker des paires clé/valeur dans une seule clé Redis.
+
+- **Ajouter des informations utilisateur :**
+  ```bash
+  HSET user:11 username "ghada"
+  HSET user:11 age 25
+  HSET user:11 email "ghada.malek12@gmail.com"
+  ```
+
+- **Récupérer toutes les informations :**
+  ```bash
+  HGETALL user:11
+  ```
+
+- **Ajouter plusieurs champs en une seule ligne :**
+  ```bash
+  HSET user:4 username "zeineb" age 5 email "zeineb.malek@gmail.com"
+  ```
+
+- **Incrémenter l'âge :**
+  ```bash
+  HINCRBY user:4 age 4
+  ```
+### HyperLogLog
+
+HyperLogLog est une structure de données probabiliste utilisée pour estimer le nombre d'éléments uniques dans un ensemble, avec une faible utilisation de mémoire.
+
+- **Ajouter des éléments :**
+  ```bash
+  PFADD visiteurs "Alice" "Bob" "Charlie"
+  ```
+
+- **Estimer le nombre d'éléments uniques :**
+  ```bash
+  PFCOUNT visiteurs
+  ```
+
+- **Fusionner plusieurs HyperLogLogs :**
+  ```bash
+  PFMERGE total_visiteurs visiteurs1 visiteurs2
+  ```
+
+HyperLogLog est particulièrement utile pour des analyses rapides où une estimation est suffisante, comme le comptage de visiteurs uniques sur un site web.
+## Persistance et Limites de Redis  
+Redis stocke les données en mémoire, ce qui peut entraîner des pertes en cas de panne. Il est idéal pour des caches rapides et des données temporaires.
 
  
